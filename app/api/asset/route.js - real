@@ -1,0 +1,86 @@
+// ŠABLONA PRO REÁLNÉ Yahoo/Polygon API
+// ====================================
+// Stačí doplnit fetch() do sekcí označených TODO.
+
+import { computeDCF } from "../../../lib/utils";
+
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const symbol = (searchParams.get("ticker") || "").toUpperCase();
+
+  // 1) Yahoo Finance – profil firmy
+  // =======================================================
+  let profile = {};
+  try {
+    // TODO: doplnit skutečné API volání
+    // const res = await fetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=assetProfile,price,summaryDetail,defaultKeyStatistics,financialData`);
+    // profile = await res.json();
+  } catch (e) {
+    profile = { error: "Yahoo profile fetch failed." };
+  }
+
+  // 2) Yahoo – historická data
+  // =======================================================
+  let history = [];
+  try {
+    // TODO: doplnit fetch historických cen
+    // const resHist = await fetch("...");
+    // history = await resHist.json();
+  } catch (e) {
+    history = [];
+  }
+
+  // 3) Pre-market / After-hours
+  // =======================================================
+  let extended = {
+    preMarketPrice: null,
+    preMarketChange: null,
+    postMarketPrice: null,
+    postMarketChange: null,
+  };
+  try {
+    // TODO: doplnit pre/post market z Yahoo
+  } catch (e) {}
+
+  // 4) Základní extrakce (falešná, dokud nebude API)
+  // =======================================================
+  const fundamentals = {
+    pe: profile?.summaryDetail?.trailingPE ?? null,
+    ps: profile?.summaryDetail?.priceToSales ?? null,
+    pb: profile?.summaryDetail?.priceToBook ?? null,
+    beta: profile?.summaryDetail?.beta ?? null,
+    revenue: profile?.financialData?.totalRevenue ?? null,
+    netIncome: profile?.financialData?.netIncome ?? null,
+    debt: profile?.financialData?.totalDebt ?? null,
+    cash: profile?.financialData?.totalCash ?? null,
+  };
+
+  // 5) DCF výpočet (funguje i bez API – doplníme později)
+  // =======================================================
+  const dcf = computeDCF({
+    fcf: profile?.financialData?.freeCashflow ?? 10_000_000_000,
+    growth: 0.06,
+    wacc: 0.09,
+    terminal: 0.02,
+    shares: profile?.defaultKeyStatistics?.sharesOutstanding ?? 15_000_000_000,
+  });
+
+  return Response.json(
+    {
+      ok: true,
+      ticker: symbol,
+      name: profile?.price?.shortName ?? symbol,
+      sector: profile?.assetProfile?.sector ?? null,
+      industry: profile?.assetProfile?.industry ?? null,
+      description: profile?.assetProfile?.longBusinessSummary ?? null,
+      country: profile?.assetProfile?.country ?? null,
+      website: profile?.assetProfile?.website ?? null,
+      dividendYield: profile?.summaryDetail?.dividendYield ?? null,
+      fundamentals,
+      dcf,
+      extended,
+      history
+    },
+    { status: 200 }
+  );
+}
