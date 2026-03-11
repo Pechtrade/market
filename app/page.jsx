@@ -6,12 +6,14 @@ import Section from "../components/Section";
 import Button from "../components/Button";
 import { ASSETS, PREMARKET, IPOS } from "../lib/mockData";
 import { currency } from "../lib/utils";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 export default function Page() {
   // ---------- UI stav ----------
   const [lang, setLang] = useState("cs");
   const [active, setActive] = useState(ASSETS[0]);
   const [query, setQuery] = useState("");
+  const [dcfValue, setDcfValue] = useState(null)
 
   // Watchlist & portfolio (localStorage)
   const [watch, setWatch] = useState(["AAPL", "NVDA"]);
