@@ -1,27 +1,39 @@
-import { computeDCF } from "../../../lib/utils";
+"use client";
+import { useEffect, useState } from "react";
+import Section from "../components/Section"; // případně "../../../components/Section"
+import { currency } from "../lib/utils";     // případně "../../../lib/utils"
 
-export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const ticker = (searchParams.get("ticker") || "").toUpperCase();
+export default function AssetDetailLike({ active }) {
+  const [dcfValue, setDcfValue] = useState(null);
 
-  // MOCK finanční data – demo
-  const demoData = {
-    fcf: 15_000_000_000,   // free cashflow
-    growth: 0.05,
-    wacc: 0.09,
-    terminal: 0.02,
-    shares: 18_000_000_000
-  };
+  useEffect(() => {
+    if (!active?.symbol) {
+      setDcfValue(null);
+      return;
+    }
+    let cancelled = false;
+    const loadDCF = async () => {
+      try {
+        const res = await fetch(`/api/dcf?ticker=${active.symbol}`);
+        const data = await res.json();
+        if (!cancelled) {
+          setDcfValue(data?.ok ? data.fairValue : null);
+        }
+      } catch {
+        if (!cancelled) setDcfValue(null);
+      }
+    };
+    loadDCF();
+    return () => (cancelled = true);
+  }, [active]);
 
-  const dcf = computeDCF(demoData);
-
-  return Response.json(
-    {
-      ok: true,
-      ticker,
-      fairValue: dcf.perShare,
-      inputs: demoData
-    },
-    { status: 200 }
+  return (
+    <Section title="Vnitřní hodnota (DCF)">
+      {dcfValue != null ? (
+        <div><b>Fair value:</b> {currency(dcfValue)}</div>
+      ) : (
+        <div className="text-slate-500">DCF není k dispozici.</div>
+      )}
+    </Section>
   );
 }
